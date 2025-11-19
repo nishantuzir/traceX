@@ -2,7 +2,7 @@
 import json
 import os
 from collections import Counter
-from dbt_colibri.utils.parsing_utils import normalize_table_relation_name
+from tracex.utils.parsing_utils import normalize_table_relation_name
 
 
 def test_normalize_relation_name_across_sql_dialects():
@@ -94,7 +94,7 @@ def count_edges_with_double_colon(result: dict) -> dict:
     Edge IDs follow the pattern: "{source_node}::->{target_node}::"
     
     Args:
-        result: The result dictionary from DbtColibriReportGenerator.build_full_lineage()
+        result: The result dictionary from TraceXReportGenerator.build_full_lineage()
         
     Returns:
         dict: Contains counts of different edge types and totals.

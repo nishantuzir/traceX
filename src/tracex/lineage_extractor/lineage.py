@@ -1,6 +1,6 @@
 # This file is a modified version of a lineage.py file from sqlglot (https://github.com/tobymao/sqlglot)
 # Original License: MIT
-# Modifications Copyright (c) 2025 b-ned
+# Modifications Copyright (c) 2025 Nishant Uzir
 
 from __future__ import annotations
 import logging

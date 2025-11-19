@@ -1,9 +1,9 @@
 [project]
-name = "dbt-colibri"
+name = "tracex"
 version = "0.2.8b2"
 description = "A column lineage parser and dashboarding tool"
 authors = [
-    { name="bned" }
+    { name="Nishant Uzir" }
 ]
 license = { text = "MIT" }
 readme = "README.md"
@@ -21,7 +21,7 @@ classifiers = [
 ]
 
 [project.scripts]
-colibri = "dbt_colibri.cli.cli:cli"
+tracex = "tracex.cli.cli:cli"
 
 [build-system]
 requires = ["setuptools", "wheel"]

@@ -1,5 +1,5 @@
 import pytest
-from dbt_colibri.lineage_extractor.extractor import DbtColumnLineageExtractor
+from tracex.lineage_extractor.extractor import DbtColumnLineageExtractor
 
 def test_locations_column_lineage_case_sensitivity(dbt_valid_test_data_dir):
     """Test that model.jaffle_shop.locations has proper column lineage with correct case sensitivity."""

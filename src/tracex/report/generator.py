@@ -9,13 +9,13 @@ from ..lineage_extractor.extractor import DbtColumnLineageExtractor
 import base64
 
 
-class DbtColibriReportGenerator:
+class TraceXReportGenerator:
     """
-    Generates dbt-colibri report data from lineage extraction results.
+    Generates TraceX report data from lineage extraction results.
     
     Uses composition with DbtColumnLineageExtractor to separate concerns:
     - Lineage extraction (DbtColumnLineageExtractor)
-    - Report generation (DbtColibriReportGenerator)
+    - Report generation (TraceXReportGenerator)
     """
     
     def __init__(self, extractor: DbtColumnLineageExtractor, light_mode: bool = False):
@@ -23,7 +23,7 @@ class DbtColibriReportGenerator:
         self.manifest = extractor.manifest
         self.catalog = extractor.catalog
         self.logger = extractor.logger
-        self.colibri_version = extractor.colibri_version
+        self.tracex_version = extractor.tracex_version
         self.dialect = extractor.dialect
         self.light_mode = light_mode
 
@@ -331,7 +331,7 @@ class DbtColibriReportGenerator:
         # Build the final structure
         result = {
             "metadata": {
-                "colibri_version": self.colibri_version,
+                "tracex_version": self.tracex_version,
                 "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
                 "adapter_type": self.manifest.get("metadata", {}).get("adapter_type"),
                 "dbt_version": self.manifest.get("metadata", {}).get("dbt_version"),
@@ -376,7 +376,7 @@ class DbtColibriReportGenerator:
     
     def generate_report(self, output_dir: str = "dist") -> dict:
         """
-        Generate the complete dbt-colibri report with both JSON and HTML output.
+        Generate the complete TraceX report with both JSON and HTML output.
         
         Args:
             output_dir: Directory to save both JSON and HTML files (default: "dist")
@@ -391,7 +391,7 @@ class DbtColibriReportGenerator:
         target_path.mkdir(parents=True, exist_ok=True)
         
         # Save full JSON data (with parents and children)
-        json_path = target_path / "colibri-manifest.json"
+        json_path = target_path / "tracex-manifest.json"
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(lineage, f, indent=2)
         
@@ -407,7 +407,7 @@ class DbtColibriReportGenerator:
         }
         
         # Save stripped version to a temporary file for HTML injection
-        json_path_stripped = target_path / "colibri-manifest-temp.json"
+        json_path_stripped = target_path / "tracex-manifest-temp.json"
         with open(json_path_stripped, "w", encoding="utf-8") as f:
             json.dump(lineage_stripped, f, indent=2)
         
@@ -467,7 +467,7 @@ def inject_data_into_html(
         out_f.write(template_html[:insert_at])
 
         # Script preamble
-        out_f.write('<script>window.colibriData = JSON.parse(atob("')
+        out_f.write('<script>window.tracexData = JSON.parse(atob("')
 
         # Stream base64 of the JSON file with 3-byte boundary handling
         with open(json_data_path, "rb") as jf:

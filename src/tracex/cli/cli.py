@@ -1,31 +1,32 @@
-# src/dbt_colibri/cli/cli.py
+# src/tracex/cli/cli.py
 
 import click
 import os
 import sys
 from ..lineage_extractor.extractor import DbtColumnLineageExtractor
-from ..report.generator import DbtColibriReportGenerator
+from ..report.generator import TraceXReportGenerator
 from importlib.metadata import version, PackageNotFoundError
 
-COLIBRI_LOGO = r"""
- ______     ______     __         __     ______     ______     __    
-/\  ___\   /\  __ \   /\ \       /\ \   /\  == \   /\  == \   /\ \   
-\ \ \____  \ \ \/\ \  \ \ \____  \ \ \  \ \  __<   \ \  __<   \ \ \  
- \ \_____\  \ \_____\  \ \_____\  \ \_\  \ \_____\  \ \_\ \_\  \ \_\ 
-  \/_____/   \/_____/   \/_____/   \/_/   \/_____/   \/_/ /_/   \/_/ 
+TRACEX_LOGO = r"""
+ _______  _______  _______  _______  _______  _______ 
+|__   __||__   __||__   __||__   __||__   __||__   __|
+   | |      | |      | |      | |      | |      | |    
+   | |      | |      | |      | |      | |      | |    
+   | |      | |      | |      | |      | |      | |    
+   |_|      |_|      |_|      |_|      |_|      |_|    
 """
 
 try:
-    __version__ = version("dbt-colibri")
+    __version__ = version("tracex")
 except PackageNotFoundError:
     __version__ = "unknown"
 
 @click.group()
-@click.version_option(__version__, prog_name="dbt-colibri")
+@click.version_option(__version__, prog_name="tracex")
 def cli():
-    click.echo(f"{COLIBRI_LOGO}\n")
-    click.echo("Welcome to dbt-colibri 🐦")
-    """dbt-colibri CLI tool"""
+    click.echo(f"{TRACEX_LOGO}\n")
+    click.echo("Welcome to TraceX - Column Lineage Tool")
+    """TraceX CLI tool"""
     pass
 
 @cli.command("generate")
@@ -61,7 +62,7 @@ def cli():
 )
 
 def generate_report(output_dir, manifest, catalog, debug, light):
-    """Generate a dbt-colibri lineage report with both JSON and HTML output."""
+    """Generate a TraceX lineage report with both JSON and HTML output."""
     import logging
     from ..utils import log
 
@@ -73,10 +74,10 @@ def generate_report(output_dir, manifest, catalog, debug, light):
         logger = log.setup_logging(level=log_level)
 
         if not os.path.exists(manifest):
-            logger.error(f"❌ Manifest file not found at {manifest}")
+            logger.error(f"ERROR: Manifest file not found at {manifest}")
             sys.exit(1)
         if not os.path.exists(catalog):
-            logger.error(f"❌ Catalog file not found at {catalog}")
+            logger.error(f"ERROR: Catalog file not found at {catalog}")
             sys.exit(1)
 
         logger.info("Loading dbt manifest and catalog...")
@@ -90,24 +91,24 @@ def generate_report(output_dir, manifest, catalog, debug, light):
 
         logger.info(
             "Running with configuration:\n"
-            f"         dbt-colbri version : {extractor.colibri_version}\n"
+            f"         TraceX version     : {extractor.tracex_version}\n"
             f"         dbt version        : {dbt_version}\n"
             f"         SQL dialect        : {adapter}\n"
             f"         dbt project        : {project}"
         )
 
         logger.info("Extracting lineage data...")
-        report_generator = DbtColibriReportGenerator(extractor, light_mode=light)
+        report_generator = TraceXReportGenerator(extractor, light_mode=light)
 
         logger.info("Generating report...")
         report_generator.generate_report(output_dir=output_dir)
         click.echo("\n")
-        click.echo("✅ Report completed!")
-        click.echo(f"  📁 JSON: {output_dir}/colibri-manifest.json")
-        click.echo(f"  🌐 HTML: {output_dir}/index.html")
+        click.echo("SUCCESS: Report completed!")
+        click.echo(f"  JSON: {output_dir}/tracex-manifest.json")
+        click.echo(f"  HTML: {output_dir}/index.html")
         sys.exit(0)
     except Exception as e:
-        logger.error(f"❌ Error: {str(e)}")
+        logger.error(f"ERROR: {str(e)}")
         sys.exit(1)
 
 

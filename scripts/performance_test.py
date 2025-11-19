@@ -4,8 +4,8 @@ import psutil
 import pickle
 from pathlib import Path
 from datetime import datetime
-from dbt_colibri.report.generator import DbtColibriReportGenerator
-from dbt_colibri.lineage_extractor.extractor import DbtColumnLineageExtractor
+from tracex.report.generator import TraceXReportGenerator
+from tracex.lineage_extractor.extractor import DbtColumnLineageExtractor
 
 
 class MemoryMonitor:
@@ -96,7 +96,7 @@ def main(input_folder="dev_data"):
         manifest_path=str(manifest_path),
         catalog_path=str(catalog_path),
     )
-    report_generator = DbtColibriReportGenerator(extractor)
+    report_generator = TraceXReportGenerator(extractor)
     
     # Start memory monitoring
     monitor = MemoryMonitor(sampling_interval=0.1)
@@ -112,11 +112,11 @@ def main(input_folder="dev_data"):
         print(f"Report generation completed in {elapsed_time:.2f} seconds")
         
         # Get file sizes of generated files
-        colibri_manifest = Path("dev_output/colibri-manifest.json")
+        tracex_manifest = Path("dev_output/tracex-manifest.json")
         index_html = Path("dev_output/index.html")
         
-        if colibri_manifest.exists():
-            file_sizes['colibri-manifest.json'] = colibri_manifest.stat().st_size / 1024 / 1024  # MB
+        if tracex_manifest.exists():
+            file_sizes['tracex-manifest.json'] = tracex_manifest.stat().st_size / 1024 / 1024  # MB
         if index_html.exists():
             file_sizes['index.html'] = index_html.stat().st_size / 1024 / 1024  # MB
             

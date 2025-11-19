@@ -8,7 +8,7 @@ def setup_logging(level=logging.INFO):
     INFO -> user-friendly format
     DEBUG -> detailed developer format
     """
-    logger = logging.getLogger("colibri")
+    logger = logging.getLogger("tracex")
 
     if not logger.handlers:
         handler = logging.StreamHandler(sys.stdout)

@@ -1,6 +1,6 @@
 import os
-from dbt_colibri.lineage_extractor.extractor import DbtColumnLineageExtractor
-from dbt_colibri.report.generator import DbtColibriReportGenerator
+from tracex.lineage_extractor.extractor import DbtColumnLineageExtractor
+from tracex.report.generator import TraceXReportGenerator
 
 # Fixed version
 version = "1.10"
@@ -23,7 +23,7 @@ extractor = DbtColumnLineageExtractor(
 )
 
 # Generate HTML report
-report_generator = DbtColibriReportGenerator(extractor)
+report_generator = TraceXReportGenerator(extractor)
 report_generator.generate_report(output_dir=output_dir)
 
 print(f"✔ Report generated in {output_dir}/index.html")

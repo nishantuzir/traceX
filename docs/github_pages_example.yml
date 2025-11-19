@@ -1,4 +1,4 @@
-name: dbt Colibri Example
+name: TraceX Example
 
 on:
   push:
@@ -40,8 +40,8 @@ jobs:
       #     dbt compile
       #     dbt docs generate
 
-      - name: Run Colibri
-        run: colibri generate
+      - name: Run TraceX
+        run: tracex generate
 
       - name: Prepare artifact
         run: |

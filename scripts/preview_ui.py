@@ -1,6 +1,6 @@
 import os
-from dbt_colibri.lineage_extractor.extractor import DbtColumnLineageExtractor
-from dbt_colibri.report.generator import DbtColibriReportGenerator
+from tracex.lineage_extractor.extractor import DbtColumnLineageExtractor
+from tracex.report.generator import TraceXReportGenerator
 import webbrowser
 
 # List of dbt versions you want to process
@@ -22,7 +22,7 @@ for version in versions:
         catalog_path=catalog_path
     )
 
-    report_generator = DbtColibriReportGenerator(extractor)
+    report_generator = TraceXReportGenerator(extractor)
     report_generator.generate_report(output_dir=output_dir)
 
     print(f"✔ Done with {version}, results in {output_dir}")

@@ -1,7 +1,7 @@
 import os
 import pytest
 from click.testing import CliRunner
-from dbt_colibri.cli.cli import cli
+from tracex.cli.cli import cli
 
 
 @pytest.fixture
@@ -31,7 +31,7 @@ def test_generate_success(test_data_dir, test_output_dir):
     )
 
     assert result.exit_code == 0, result.output
-    assert os.path.exists(os.path.join(test_output_dir, "colibri-manifest.json"))
+    assert os.path.exists(os.path.join(test_output_dir, "tracex-manifest.json"))
     assert os.path.exists(os.path.join(test_output_dir, "index.html"))
 
 
@@ -71,7 +71,7 @@ def test_generate_missing_catalog(test_data_dir, test_output_dir):
 
 def test_generate_raises_exception(monkeypatch, test_data_dir, test_output_dir):
     """Simulate internal exception to verify error handling"""
-    from dbt_colibri.cli import cli as cli_module
+    from tracex.cli import cli as cli_module
 
     def raise_exception(*args, **kwargs):
         raise RuntimeError("Simulated failure")
@@ -106,7 +106,7 @@ def test_generate_with_bigquery_adapter(test_output_dir):
     )
 
     assert result.exit_code == 0, result.output
-    assert os.path.exists(os.path.join(test_output_dir, "colibri-manifest.json"))
+    assert os.path.exists(os.path.join(test_output_dir, "tracex-manifest.json"))
     assert os.path.exists(os.path.join(test_output_dir, "index.html"))
 
 
@@ -124,5 +124,5 @@ def test_generate_with_duckdb_adapter(test_output_dir):
     )
 
     assert result.exit_code == 0, result.output
-    assert os.path.exists(os.path.join(test_output_dir, "colibri-manifest.json"))
+    assert os.path.exists(os.path.join(test_output_dir, "tracex-manifest.json"))
     assert os.path.exists(os.path.join(test_output_dir, "index.html"))
