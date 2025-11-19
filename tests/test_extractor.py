@@ -2,7 +2,7 @@ import pytest
 import os
 import json
 import tempfile
-from dbt_colibri.lineage_extractor.extractor import DbtColumnLineageExtractor
+from tracex.lineage_extractor.extractor import DbtColumnLineageExtractor, DBTNodeCatalog
 from unittest.mock import patch, MagicMock
 from sqlglot.lineage import SqlglotError
 import logging
@@ -226,7 +226,7 @@ def test_get_list_of_columns(dbt_valid_test_data_dir, caplog):
 
     # Test with a guaranteed non-existent node
     missing_node = "model.does_not_exist"
-    with caplog.at_level(logging.WARNING, logger="colibri"):
+    with caplog.at_level(logging.WARNING, logger="tracex"):
         no_columns = extractor._get_list_of_columns_for_a_dbt_node(missing_node)
         assert no_columns == []
         assert missing_node in caplog.text
@@ -331,7 +331,7 @@ def test_generate_schema_dict_snapshot_catalog(dbt_valid_test_data_dir):
     assert parent_count > 0
 
 
-@patch('dbt_colibri.lineage_extractor.extractor.lineage')
+@patch('tracex.lineage_extractor.extractor.lineage')
 def test_extract_lineage_for_model(mock_lineage):
     """Test extracting lineage for a model."""
     # Mock the lineage function to return a predictable result
@@ -454,7 +454,7 @@ def test_extract_lineage_with_real_data(dbt_valid_test_data_dir):
     # Check that at least one column has lineage information
     assert any(lineage for lineage in lineage_map.values())
 
-@patch('dbt_colibri.lineage_extractor.extractor.lineage')
+@patch('tracex.lineage_extractor.extractor.lineage')
 def test_extract_lineage_error_handling(mock_lineage, dbt_valid_test_data_dir):
     """Test error handling during lineage extraction."""
     # Mock the lineage function to raise an error
@@ -677,7 +677,7 @@ def test_python_model_handling():
     }
     
     # Patch the read_json method to return our mock manifest and catalog
-    with patch('dbt_colibri.utils.json_utils.read_json') as mock_read_json:
+    with patch('tracex.utils.json_utils.read_json') as mock_read_json:
         mock_read_json.side_effect = [manifest, catalog]
         
         with patch.object(DbtColumnLineageExtractor, '_generate_schema_dict_from_catalog') as mock_schema:
@@ -697,5 +697,219 @@ def test_python_model_handling():
                 
                 # Verify that the Python model was skipped
                 assert lineage_map == {}
+
+
+def test_dbt_node_catalog_with_unique_id():
+    """Test DBTNodeCatalog with unique_id present (normal case)."""
+    node_data = {
+        "metadata": {
+            "database": "TEST_DB",
+            "schema": "PUBLIC",
+            "name": "TEST_TABLE"
+        },
+        "unique_id": "model.project.test_table",
+        "columns": {
+            "col1": {"type": "TEXT", "name": "col1"},
+            "col2": {"type": "INTEGER", "name": "col2"}
+        }
+    }
+    
+    dbt_node = DBTNodeCatalog(node_data)
+    
+    assert dbt_node.database == "TEST_DB"
+    assert dbt_node.schema == "PUBLIC"
+    assert dbt_node.name == "TEST_TABLE"
+    assert dbt_node.unique_id == "model.project.test_table"
+    assert dbt_node.full_table_name == "model.project.test_table"
+    assert len(dbt_node.columns) == 2
+    assert dbt_node.get_column_types() == {"col1": "TEXT", "col2": "INTEGER"}
+
+
+def test_dbt_node_catalog_without_unique_id():
+    """Test DBTNodeCatalog without unique_id (fallback case)."""
+    node_data = {
+        "metadata": {
+            "database": "TEST_DB",
+            "schema": "PUBLIC",
+            "name": "TEST_TABLE"
+        },
+        # unique_id is missing
+        "columns": {
+            "col1": {"type": "TEXT", "name": "col1"}
+        }
+    }
+    
+    dbt_node = DBTNodeCatalog(node_data)
+    
+    assert dbt_node.database == "TEST_DB"
+    assert dbt_node.schema == "PUBLIC"
+    assert dbt_node.name == "TEST_TABLE"
+    # Should construct unique_id from metadata
+    assert dbt_node.unique_id == "test_db.public.test_table"
+    assert dbt_node.full_table_name == "test_db.public.test_table"
+    assert len(dbt_node.columns) == 1
+
+
+def test_dbt_node_catalog_without_unique_id_missing_metadata_fields():
+    """Test DBTNodeCatalog without unique_id and with missing metadata fields."""
+    node_data = {
+        "metadata": {
+            "database": "TEST_DB",
+            # schema and name are missing
+        },
+        "columns": {}
+    }
+    
+    dbt_node = DBTNodeCatalog(node_data)
+    
+    assert dbt_node.database == "TEST_DB"
+    # Should use "unknown" for missing fields
+    assert dbt_node.unique_id == "test_db.unknown.unknown"
+    assert dbt_node.full_table_name == "test_db.unknown.unknown"
+
+
+def test_dbt_node_catalog_without_columns():
+    """Test DBTNodeCatalog with missing columns field."""
+    node_data = {
+        "metadata": {
+            "database": "TEST_DB",
+            "schema": "PUBLIC",
+            "name": "TEST_TABLE"
+        },
+        "unique_id": "model.project.test_table"
+        # columns is missing
+    }
+    
+    dbt_node = DBTNodeCatalog(node_data)
+    
+    assert dbt_node.database == "TEST_DB"
+    assert dbt_node.unique_id == "model.project.test_table"
+    assert dbt_node.columns == {}
+    assert dbt_node.get_column_types() == {}
+
+
+def test_dbt_node_catalog_missing_metadata():
+    """Test DBTNodeCatalog raises error when metadata is missing."""
+    node_data = {
+        "unique_id": "model.project.test_table",
+        "columns": {}
+        # metadata is missing
+    }
+    
+    with pytest.raises(ValueError, match="Node data missing metadata field"):
+        DBTNodeCatalog(node_data)
+
+
+def test_dbt_node_catalog_unique_id_case_insensitive():
+    """Test that unique_id is lowercased when present."""
+    node_data = {
+        "metadata": {
+            "database": "TEST_DB",
+            "schema": "PUBLIC",
+            "name": "TEST_TABLE"
+        },
+        "unique_id": "MODEL.PROJECT.TEST_TABLE",
+        "columns": {}
+    }
+    
+    dbt_node = DBTNodeCatalog(node_data)
+    
+    assert dbt_node.unique_id == "model.project.test_table"
+
+
+def test_dbt_node_catalog_fallback_unique_id_case_insensitive():
+    """Test that fallback unique_id is lowercased."""
+    node_data = {
+        "metadata": {
+            "database": "TEST_DB",
+            "schema": "PUBLIC",
+            "name": "TEST_TABLE"
+        },
+        "columns": {}
+    }
+    
+    dbt_node = DBTNodeCatalog(node_data)
+    
+    assert dbt_node.unique_id == "test_db.public.test_table"
+
+
+def test_schema_dict_generation_with_missing_unique_id(dbt_valid_test_data_dir):
+    """Test schema dictionary generation works even when some catalog nodes lack unique_id."""
+    if dbt_valid_test_data_dir is None:
+        pytest.skip("No valid versioned test data present")
+    
+    # Create a modified catalog with one node missing unique_id
+    catalog_path = f"{dbt_valid_test_data_dir}/catalog.json"
+    with open(catalog_path, 'r') as f:
+        catalog = json.load(f)
+    
+    # Find the first node and remove its unique_id
+    if catalog.get("nodes"):
+        first_node_key = next(iter(catalog["nodes"]))
+        if "unique_id" in catalog["nodes"][first_node_key]:
+            del catalog["nodes"][first_node_key]["unique_id"]
+    
+    # Write modified catalog to temp file
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp_catalog:
+        json.dump(catalog, tmp_catalog)
+        tmp_catalog_path = tmp_catalog.name
+    
+    try:
+        # Should not raise an error
+        extractor = DbtColumnLineageExtractor(
+            manifest_path=f"{dbt_valid_test_data_dir}/manifest.json",
+            catalog_path=tmp_catalog_path
+        )
+        
+        # Verify schema_dict was generated successfully
+        assert extractor.schema_dict
+        assert isinstance(extractor.schema_dict, dict)
+        assert len(extractor.schema_dict) > 0
+    finally:
+        # Clean up temp file
+        os.unlink(tmp_catalog_path)
+
+
+def test_extract_lineage_with_catalog_missing_unique_id(dbt_valid_test_data_dir):
+    """Test that lineage extraction works with catalog nodes missing unique_id."""
+    if dbt_valid_test_data_dir is None:
+        pytest.skip("No valid versioned test data present")
+    
+    # Create a modified catalog with some nodes missing unique_id
+    catalog_path = f"{dbt_valid_test_data_dir}/catalog.json"
+    with open(catalog_path, 'r') as f:
+        catalog = json.load(f)
+    
+    # Remove unique_id from first few nodes
+    nodes_modified = 0
+    for node_key in list(catalog.get("nodes", {}).keys())[:3]:
+        if "unique_id" in catalog["nodes"][node_key]:
+            del catalog["nodes"][node_key]["unique_id"]
+            nodes_modified += 1
+    
+    if nodes_modified == 0:
+        pytest.skip("Could not create test case - all nodes already have unique_id")
+    
+    # Write modified catalog to temp file
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp_catalog:
+        json.dump(catalog, tmp_catalog)
+        tmp_catalog_path = tmp_catalog.name
+    
+    try:
+        extractor = DbtColumnLineageExtractor(
+            manifest_path=f"{dbt_valid_test_data_dir}/manifest.json",
+            catalog_path=tmp_catalog_path
+        )
+        
+        # Should be able to extract lineage without errors
+        lineage = extractor.extract_project_lineage()
+        
+        assert lineage is not None
+        assert "lineage" in lineage
+        assert "parents" in lineage["lineage"]
+        assert "children" in lineage["lineage"]
+    finally:
+        # Clean up temp file
+        os.unlink(tmp_catalog_path)
 
 
